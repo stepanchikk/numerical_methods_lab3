@@ -21,3 +21,95 @@
 
 Цим модулем користуються всі інші файли, тому його треба зробити першим.
 """
+
+import math
+
+# Параметри задачі
+EPS = 1e-3          # точність ε = 10^-3
+MAX_ITER = 100      # захист від нескінченного циклу
+
+# Прямокутник ізоляції розв'язку G = (0,6; 0,8) x (0,5; 0,7)
+X_MIN, X_MAX = 0.6, 0.8
+Y_MIN, Y_MAX = 0.5, 0.7
+
+# Початкове наближення з області G
+X0 = (0.7, 0.6)
+
+
+# Система у вигляді F(x) = 0  (для методу Ньютона)
+def f1(x, y):
+    """f1(x, y) = x + cos(y) - 1,5"""
+    return x + math.cos(y) - 1.5
+
+
+def f2(x, y):
+    """f2(x, y) = 2y - sin(x - 0,5) - 1"""
+    return 2 * y - math.sin(x - 0.5) - 1
+
+
+def F(x, y):
+    return f1(x, y), f2(x, y)
+
+
+def jacobian_W(x, y):
+    """
+    Матриця Якобі W(x) системи F(x) = 0:
+        | df1/dx  df1/dy |   |      1          -sin(y) |
+        | df2/dx  df2/dy | = | -cos(x - 0,5)      2    |
+    """
+    return ((1.0, -math.sin(y)),
+            (-math.cos(x - 0.5), 2.0))
+
+
+# Система у ітераційному вигляді x = Φ(x)  (для МПІ та методу Зейделя)
+def phi1(x, y):
+    """x = φ1(x, y) = 1,5 - cos(y) (з першого рівняння)"""
+    return 1.5 - math.cos(y)
+
+
+def phi2(x, y):
+    """y = φ2(x, y) = 0,5 + 0,5·sin(x - 0,5)  (з другого рівняння)"""
+    return 0.5 + 0.5 * math.sin(x - 0.5)
+
+
+def jacobian_phi(x, y):
+    """
+    Матриця Якобі dΦ/dx:
+        | dφ1/dx  dφ1/dy |   |        0             sin(y) |
+        | dφ2/dx  dφ2/dy | = | 0,5·cos(x - 0,5)       0    |
+    """
+    return ((0.0, math.sin(y)),
+            (0.5 * math.cos(x - 0.5), 0.0))
+
+
+# Допоміжні функції для звіту
+def make_record(k, x, y, x_prev=None, y_prev=None):
+    """Один рядок таблиці ітерацій."""
+    if x_prev is None:
+        return {"k": k, "x": x, "y": y, "dx": None, "dy": None, "delta": None}
+    dx, dy = abs(x - x_prev), abs(y - y_prev)
+    return {"k": k, "x": x, "y": y, "dx": dx, "dy": dy, "delta": max(dx, dy)}
+
+
+def print_table(title, records, threshold):
+    """Друкує таблицю ітерацій у форматі, як у методичці."""
+    line = "-" * 86
+    print(f"\n{title}")
+    print(line)
+    print(f"{'k':>3} | {'x1(k)':>10} | {'x2(k)':>10} | {'|x1(k)-x1(k-1)|':>16} | "
+          f"{'|x2(k)-x2(k-1)|':>16} | {'Δ(k)':>9} | Висновок")
+    print(line)
+    for r in records:
+        if r["delta"] is None:
+            print(f"{r['k']:>3} | {r['x']:>10.6f} | {r['y']:>10.6f} | {'---':>16} | "
+                  f"{'---':>16} | {'---':>9} | ---")
+        else:
+            sign = "<=" if r["delta"] <= threshold else ">"
+            print(f"{r['k']:>3} | {r['x']:>10.6f} | {r['y']:>10.6f} | {r['dx']:>16.6f} | "
+                  f"{r['dy']:>16.6f} | {r['delta']:>9.6f} | {sign} {threshold:.6f}")
+    print(line)
+
+
+def verify(x, y):
+    """Підстановка розв'язку у вихідну систему: повертає нев'язки f1, f2."""
+    return f1(x, y), f2(x, y)
