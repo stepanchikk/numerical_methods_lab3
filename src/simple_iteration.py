@@ -21,8 +21,8 @@ def estimate_q(x_range, y_range, steps=200):
         x = x_range[0] + (x_range[1] - x_range[0]) * i / steps
         for j in range(steps + 1):
             y = y_range[0] + (y_range[1] - y_range[0]) * j / steps
-            J = jacobian_phi(x, y)
-            row_norm = max(abs(J[0][0]) + abs(J[0][1]), abs(J[1][0]) + abs(J[1][1]))
+            jac = jacobian_phi(x, y)
+            row_norm = max(abs(jac[0][0]) + abs(jac[0][1]), abs(jac[1][0]) + abs(jac[1][1]))
             q = max(q, row_norm)
     return q
 
@@ -33,11 +33,11 @@ def stop_tolerance(q, eps):
 
 # метод
 
-def solve(x0, tol, max_iter=100):
+def solve(x0, threshold, max_iter=100):
     """
     Метод простої ітерації.
     x0       - початкове наближення (x, y), спільне для всіх методів;
-    tol      - поріг зупинки (з етапу 4);
+    threshold - поріг зупинки (з етапу 4);
     max_iter - запобіжник від нескінченного циклу, якщо метод розбігається.
 
     Повертає (x, y, records), де records - список словників
@@ -57,7 +57,7 @@ def solve(x0, tol, max_iter=100):
         records.append({"k": k, "x": x_new, "y": y_new, "dx": dx, "dy": dy, "delta": delta})
 
         x, y = x_new, y_new
-        if delta <= tol:
+        if delta <= threshold:
             return x, y, records
 
     raise RuntimeError(f"МПІ не зійшовся за {max_iter} ітерацій")
